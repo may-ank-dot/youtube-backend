@@ -4,6 +4,7 @@ import { User } from "../models/user.models.js"
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/apiResponse.js"
 import jwt from "jsonwebtoken"
+import mongoose from "mongoose"
 
 const generateAccessAndRefreshToken = async (userId) => {
   try {
@@ -112,6 +113,7 @@ const loginUser = asyncHandler(async (req, res) => {
   }
   return res
     .status(200)
+    .cookie("accessToken", accessToken, options)
     .cookie("accessToken", accessToken, options)
     .cookie("refreshToken", refreshToken, options)
     .json(
@@ -248,7 +250,6 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
   if (!avatarLocalPath)
     throw new ApiError(400, "avatar file required")
   const avatar = await uploadOnCloudinary(avatarLocalPath)
-
   if (!avatar.url)
     throw new ApiError(400, "Error while uploading avatar")
 
@@ -365,6 +366,55 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     )
 })
 
+const getWatchHistory = asyncHandler(async (req, res) => {
+  const user = await User.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Type.ObjectId(req.user._id)
+      }
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistory",
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    fullname: 1,
+                    username: 1,
+                    avatar: 1
+                  }
+                },
+                {
+                  $addFields: {
+                    owner: {
+                      $first: "$owner"
+                    }
+                  }
+                }
+              ]
+            },
+          }
+        ]
+      }
+    }
+  ])
+  return res
+    .status(200)
+    .json(
+      ApiResponse(200, user[0].watchHistory, "Wathc history fetched success")
+    )
+})
+
 export {
   registerUser,
   loginUser,
@@ -376,4 +426,5 @@ export {
   updateUserAvatar,
   updateUserCoverImage,
   getUserChannelProfile,
+  getWatchHistory,
 }
