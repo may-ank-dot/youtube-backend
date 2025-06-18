@@ -1,14 +1,13 @@
-import { asyncHandler } from "../utils/asyncHandler";
-import { ApiError } from "../utils/apiError";
-import { ApiResponse } from "../utils/apiResponse";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/apiError.js";
+import { ApiResponse } from "../utils/apiResponse.js";
 import { User } from "../models/user.models.js";
 import { Tweet } from "../models/tweet.models.js"
-import mongoose from "mongoose";
 
 const createTweet = asyncHandler(async (req, res) => {
   const { content } = req.body
   if (!content)
-    throw new ApiError(404, "content is missing!")
+    throw new ApiError(400, "content is missing")
 
   // find if user is looged in or not 
   const user = await User.findById(req.user._id)
@@ -47,7 +46,7 @@ const deleteTweet = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(
-      new ApiResponse(200, deletedTweet, "user deleted successfully")
+      new ApiResponse(200, deletedTweet, "tweet deleted successfully")
     )
 })
 
@@ -56,6 +55,9 @@ const updateTweet = asyncHandler(async (req, res) => {
   const { content } = req.body
   if (!tweetId)
     throw new ApiError(400, "Tweet Id is required")
+
+  if (!content)
+    throw new ApiError(400, "update content requried")
 
   const tweet = await Tweet.findOneAndUpdate(
     {
@@ -81,7 +83,7 @@ const updateTweet = asyncHandler(async (req, res) => {
 
 const getAllTweets = asyncHandler(async (req, res) => {
   const tweet = await Tweet.find({})
-  if (!tweet)
+  if (!tweet || tweet.length === 0)
     throw new ApiError(404, "no tweet found")
 
   return res
@@ -102,8 +104,7 @@ const getUserTweet = asyncHandler(async (req, res) => {
       owner: userId
     }
   )
-
-  if (tweets.length === 0)
+  if (!tweets || tweets.length === 0)
     throw new ApiError(404, "no tweet found!")
 
   return res
