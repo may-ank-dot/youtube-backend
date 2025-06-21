@@ -13,7 +13,6 @@ import { upload } from "../middlewares/multer.middleware.js"
 const router = Router()
 
 router.route("/upload").post(
-  verifyJWT,
   upload.fields([
     {
       name: "video",
