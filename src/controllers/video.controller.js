@@ -57,14 +57,47 @@ const publishVideo = asyncHandler(async (req, res) => {
 })
 
 const getVideoById = asyncHandler(async (req, res) => {
+  const { videoId } = req.params
+  if (!videoId)
+    throw new ApiError(400, "video Id not found")
 
+  const video = await Video.findById({ _id: videoId })
+
+  console.log(video)
+  if (!video)
+    throw new ApiError(400, "video not found!")
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(400, video, "video found")
+    )
 })
 
 const getAllVideo = asyncHandler(async (req, res) => {
+  const video = await Video.find()
+  if (!video)
+    throw new ApiError(400, "no video found!")
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, video, "video found")
+    )
 
 })
 
 const updateVideo = asyncHandler(async (req, res) => {
+  const { title, description } = req.body
+  const videoId = req.params
+
+  if (!videoId)
+    throw new ApiError(400, "videoId not found")
+  if (!(title && description))
+    throw new ApiError(400, "title  and description required")
+
+
+
 
 })
 
@@ -76,6 +109,9 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
 })
 
+const getVideoByUserId = asyncHandler(async (req, res) => {
+
+})
 
 export {
   publishVideo,
@@ -83,5 +119,6 @@ export {
   getAllVideo,
   updateVideo,
   togglePublishStatus,
-  getVideoById
+  getVideoById,
+  getVideoByUserId
 }
