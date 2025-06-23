@@ -96,9 +96,35 @@ const updateVideo = asyncHandler(async (req, res) => {
   if (!(title && description))
     throw new ApiError(400, "title  and description required")
 
+  let thumbnailLocalPath
+  if (req.file && req.file?.thumbnail)
+    thumbnailLocalPath = req.files?.thumbnail
 
+  if (!thumbnailLocalPath)
+    throw new ApiError(400, "thumbnail not found!")
 
+  const thumbnail = uploadOnCloudinary(thumbnailLocalPath)
 
+  const video = await Video.findOneAndUpdate(
+    {
+      _id: videoId,
+      owner: req.user?._id
+    },
+    {
+      title,
+      description,
+      thumbnail: thumbnail?.path
+    },
+    { new: true }
+  )
+  if (!video)
+    throw new ApiError(400, "video not found or you are not authneticated")
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, video, "video update success!")
+    )
 })
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
