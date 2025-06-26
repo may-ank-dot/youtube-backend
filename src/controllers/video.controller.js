@@ -2,7 +2,6 @@ import { Video } from "../models/video.models.js";
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { User } from "../models/user.models.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const publishVideo = asyncHandler(async (req, res) => {
@@ -61,16 +60,23 @@ const getVideoById = asyncHandler(async (req, res) => {
   if (!videoId)
     throw new ApiError(400, "video Id not found")
 
-  const video = await Video.findById({ _id: videoId })
+  const video = await Video.aggregate(
+    [
+      {
+        $match: {
+          _id
+        }
+      }
+    ]
+  )
 
-  console.log(video)
   if (!video)
     throw new ApiError(400, "video not found!")
 
   return res
     .status(200)
     .json(
-      new ApiResponse(400, video, "video found")
+      new ApiResponse(200, video, "video found")
     )
 })
 
@@ -89,7 +95,7 @@ const getAllVideo = asyncHandler(async (req, res) => {
 
 const updateVideo = asyncHandler(async (req, res) => {
   const { title, description } = req.body
-  const videoId = req.params
+  const { videoId } = req.params
 
   if (!videoId)
     throw new ApiError(400, "videoId not found")
@@ -103,7 +109,7 @@ const updateVideo = asyncHandler(async (req, res) => {
   if (!thumbnailLocalPath)
     throw new ApiError(400, "thumbnail not found!")
 
-  const thumbnail = uploadOnCloudinary(thumbnailLocalPath)
+  const thumbnail = await uploadOnCloudinary(thumbnailLocalPath)
 
   const video = await Video.findOneAndUpdate(
     {
@@ -128,15 +134,72 @@ const updateVideo = asyncHandler(async (req, res) => {
 })
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
+  const { isPublish } = req.body
+  const { videoId } = req.params
 
+  if (typeof isPublish === "undefined")
+    throw new ApiError(400, "Publish change required")
+
+  const updatePublishStatus = await Video.findOneAndUpdate(
+    {
+      _id: videoId,
+      owner: req.user?._id
+    },
+    {
+      isPublished: isPublish
+    },
+    {
+      new: true
+    }
+  )
+  if (!updatePublishStatus)
+    throw new ApiError(400, "failed to change publish status")
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, updatePublishStatus, "publish status changed")
+    )
 })
 
 const deleteVideo = asyncHandler(async (req, res) => {
+  const { videoId } = req.params
+  if (!videoId)
+    throw new ApiError(400, "video Id not found")
 
+  const deletedVideo = await Video.findOneAndDelete(
+    {
+      _id: videoId,
+      owner: req.user?._id
+    }
+  )
+  if (!deletedVideo)
+    throw new ApiError(400, "video not found or you are not authorized")
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, deletedVideo, "video deleted success")
+    )
 })
 
 const getVideoByUserId = asyncHandler(async (req, res) => {
+  const userId = req.user?._id
+  if (!userId)
+    throw new ApiError(400, "user not found")
 
+  const allVideoById = Video.find(
+    {
+      owner: userId
+    }
+  )
+  if (!allVideoById)
+    throw new ApiError(400, "No video found")
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, allVideoById, "videos found")
+    )
 })
 
 export {
