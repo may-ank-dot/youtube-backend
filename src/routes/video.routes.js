@@ -27,6 +27,7 @@ router.route("/upload").post(
   publishVideo
 )
 
+router.route("/delete/:videoId").delete(verifyJWT, deleteVideo)
 router.route("/watch/:videoId").get(getVideoById)
 router.route("/update/:videoId").put(verifyJWT, updateVideo)
 export default router
