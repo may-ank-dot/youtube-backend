@@ -66,6 +66,30 @@ const getVideoById = asyncHandler(async (req, res) => {
         $match: {
           _id
         }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "owner",
+          foreignField: "_id",
+          as: "owner",
+          pipeline: [
+            {
+              $project: {
+                fullname: 1,
+                username: 1,
+                avatar: 1
+              }
+            },
+            {
+              $addFields: {
+                owner: {
+                  $first: "$owner"
+                }
+              }
+            }
+          ]
+        }
       }
     ]
   )
@@ -80,8 +104,35 @@ const getVideoById = asyncHandler(async (req, res) => {
     )
 })
 
+// have to apply aggregate function
+
 const getAllVideo = asyncHandler(async (req, res) => {
-  const video = await Video.find()
+  const video = await Video.aggregate([
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+        pipeline: [
+          {
+            $project: {
+              username: 1,
+              fullname: 1,
+              avatar: 1
+            }
+          },
+          {
+            $addFields: {
+              owner: {
+                $first: "$owner"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ])
   if (!video)
     throw new ApiError(400, "no video found!")
 
