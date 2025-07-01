@@ -27,10 +27,12 @@ router.route("/upload").post(
   publishVideo
 )
 
-router.route("/delete/:videoId").delete(verifyJWT, deleteVideo)
 router.route("/watch/:videoId").get(getVideoById)
-router.route("/update/:videoId").put(verifyJWT, updateVideo)
-router.route("/my-videos").get(verifyJWT, getVideoByUserId)
 router.route("/").get(getAllVideo)
+
+// protected routes
+router.route("/delete/:videoId").delete(verifyJWT, deleteVideo)
+router.route("/update/:videoId").put(verifyJWT, upload.single("thumbnail"), updateVideo)
+router.route("/my-videos").get(verifyJWT, getVideoByUserId)
 router.route("toggle-publish/:videoId").patch(verifyJWT, togglePublishStatus)
 export default router

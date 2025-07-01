@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Video } from "../models/video.models.js";
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
@@ -11,7 +12,7 @@ const publishVideo = asyncHandler(async (req, res) => {
     isPublished,
   } = req.body
 
-  if (!(title, description))
+  if (!title || !description)
     throw new ApiError(400, "all fields are required")
   let videoLocalPath, thumbnailLocalPath;
 
@@ -64,7 +65,7 @@ const getVideoById = asyncHandler(async (req, res) => {
     [
       {
         $match: {
-          _id
+          _id: new mongoose.Types.ObjectId(videoId)
         }
       },
       {
@@ -104,7 +105,6 @@ const getVideoById = asyncHandler(async (req, res) => {
     )
 })
 
-// have to apply aggregate function
 
 const getAllVideo = asyncHandler(async (req, res) => {
   const video = await Video.aggregate([
@@ -155,7 +155,7 @@ const updateVideo = asyncHandler(async (req, res) => {
 
   let thumbnailLocalPath
   if (req.file && req.file?.thumbnail)
-    thumbnailLocalPath = req.files?.thumbnail
+    thumbnailLocalPath = req.files?.thumbnail?.path
 
   if (!thumbnailLocalPath)
     throw new ApiError(400, "thumbnail not found!")
@@ -170,7 +170,7 @@ const updateVideo = asyncHandler(async (req, res) => {
     {
       title,
       description,
-      thumbnail: thumbnail?.path
+      thumbnail: thumbnail?.url
     },
     { new: true }
   )
@@ -238,7 +238,7 @@ const getVideoByUserId = asyncHandler(async (req, res) => {
   if (!userId)
     throw new ApiError(400, "user not found")
 
-  const allVideoById = Video.find(
+  const allVideoById = await Video.find(
     {
       owner: userId
     }
